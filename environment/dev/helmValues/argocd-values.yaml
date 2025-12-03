@@ -1,0 +1,44 @@
+
+configs:
+  params:
+    controller.sharding.algorithm: "round-robin"
+  cm:
+    admin.enabled: 'true'
+    exec.enabled: 'true'
+    timeout.reconciliation: 100s
+
+    resource.customizations: |
+      networking.k8s.io/Ingress:
+        ignoreDifferences: |
+          jsonPointers:
+          - /spec/rules
+          - /spec/tls
+
+    url: https://argocd.meshachdevops.online
+
+redis-ha:
+  enabled: false
+
+global:
+  domain: argocd.meshachdevops.online
+
+server:
+  replicas: 2
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      cert-manager.io/issue-temporary-certificate: "true"
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+   
+    tls: true
+
+repoServer:
+  replicas: 2
+
+controller:
+  replicas: 2
+
+

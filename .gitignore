@@ -1,0 +1,51 @@
+# --- Terraform Core ---
+**/.terraform/
+**/.terraform/*
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# --- Terraform Variable Files (usually hold secrets) ---
+**/terraform.tfvars
+**/*.tfvars
+**/*.tfvars.json
+**/*.auto.tfvars
+**/*.auto.tfvars.json
+
+# Allow example variable files to remain tracked
+!**/terraform.tfvars.example
+!**/*.tfvars.example
+
+# --- Environment-specific sensitive files ---
+environment/**/terraform.tfvars
+environment/**/dev.tfvars
+environment/**/stagging.tfvars
+environment/**/prod.tfvars
+
+# --- Local/Temporary Files ---
+*.backup
+*.bak
+*.swp
+*.tmp
+
+# --- Logs and output ---
+*.log
+*.out
+
+# --- Helm Values ---
+helmvalues/*.secret.yaml
+helmvalues/*.override.yaml
+!helmvalues/*.example.yaml
+
+# --- OS / Editor Specific ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.code-workspace
+
+# --- Terraform Plan / Output ---
+*.plan
+*.tfplan
