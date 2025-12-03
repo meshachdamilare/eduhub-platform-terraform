@@ -1,6 +1,6 @@
 # Eduhub Platform – Terraform
 
-This repository contains Terraform code to stand up a **secure, GitOps-driven AKS platform** on Azure.
+This repository contains Terraform code to provision a secure environment for eduhub-platform on Azure.
 
 It is structured around **reusable modules** (`modules/`) and **environment overlays** (`environment/dev`, `environment/stagging`, `environment/prod`).
 
