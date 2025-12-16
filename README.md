@@ -71,51 +71,47 @@ terraform/
         ├── output.tf
         └── variables.tf
 ```
-
+Optionally, the modules can published to a terraform registry to minimize the repo.
 
 ---
 
-### Modules – What They Do & How They Connect
+### Modules Breakdown & How They Connect
 
 #### `modules/networking`
-
-**What it does**
-
 Creates all the network foundation:
 
-- **Resource groups**
-  - Primary: `env-resource_group_name-primary`
-  - Optional secondary: `env-resource_group_name-sec`
+ *Resource groups*
+  - Primary: `{env}-{resource_group_name}-primary`
+  - Optional secondary: `{env}-{resource_group_name}-sec`
 
-- **Virtual Networks**
+*VNet*
   - Primary VNet (e.g. `dev-vnet-north-europe`)
   - Optional secondary VNet (for multi-region scenarios)
 
-- **Subnets (from `environment/dev/local.tf`)**
+*Subnets (from `environment/dev/local.tf`)*
   - `aks-nodes` – where AKS node pools live
   - `data-private` – for data-plane services (databases, etc.)
   - `private-endpoints` – dedicated subnet for PaaS private endpoints (`disable_private_endpoint_policies = true`)
 
-- **NSGs**
-  - Created only for subnets that define `nsg_rules`.
-  - Associated automatically with those subnets.
+*NSGs*
+  - only creates for subnets that define `nsg_rules` and associate automatically with those subnets.
 
-- **NAT Gateway (optional)**
+*NAT Gateway (optional)*
   - Public IPs and NAT gateway.
   - Attached to subnets you list in `natgw_subnets_primary` / `natgw_subnets_secondary`.
 
-- **Private DNS zones**
-  - For PaaS private endpoints:
+*Private DNS zones*
+For PaaS private endpoints:
     - `privatelink.postgres.database.azure.com`
     - `privatelink.redis.cache.windows.net`
     - `privatelink.mongo.cosmos.azure.com`
     - `privatelink.blob.core.windows.net`
   - Linked to primary VNet (and secondary, if enabled).
 
-- **VNet peering (optional)**
+*VNet peering (optional)*
   - Primary ↔ Secondary VNet peering if `enable_secondary = true`.
 
-**How others use it**
+*How others use it*
 
 - `environment/dev/main.tf` uses this module.
   Implementation sample..
@@ -143,7 +139,7 @@ module "networking" {
 }
 ```
 
-- Other modules then consume its outputs:
+Other modules then consume its outputs:
   - `module.networking.resource_group_name_primary`
   - `module.networking.subnet_ids_primary["aks-nodes"]`
   - `module.networking.private_dns_zone_ids["privatelink.postgres.database.azure.com"]`
@@ -155,22 +151,19 @@ It is the **base** that everything else plugs into.
 
 #### `modules/kubenertes` (AKS)
 
-**What it does**
-
-Creates an **AKS cluster** wired into the networking module.
+Creates an **AKS cluster** using networking config from the networking module implementation output.
 
 Key features:
-
 - AKS with `system-assigned identity`
 - Overlay networking (`network_plugin = "azure"`, `network_plugin_mode = "overlay"`)
 - Workload Identity + OIDC:
-  - `oidc_issuer_enabled = true`
-  - `workload_identity_enabled = true`
+  `oidc_issuer_enabled = true`
+   `workload_identity_enabled = true`
 - Configurable node pool:
-  - `vm_size`, `node_count`, autoscaling (`min_count`, `max_count`)
-  - Uses `vnet_subnet_id` from networking module
+  `vm_size`, `node_count`, autoscaling (`min_count`, `max_count`)
+  Uses `vnet_subnet_id` from networking module
 
-**How it connects**
+*How it connects*
 
 In `environment/dev/main.tf`:
 
@@ -196,26 +189,26 @@ Outputs that are used elsewhere:
 - `module.aks_primary.oidc_issuer_url` → Key Vault / Workload Identity setup
 - AKS info is used by the `helm` and `kubernetes` providers to install in-cluster components (Ingress, Argo CD, cert-manager, etc.)
 
+Same pattern to create aks_secondary .
+
 ---
 
 #### `modules/database/posgres` (PostgreSQL)
 
-**What it does**
-
 - Creates a **PostgreSQL Flexible Server**.
 - Supports two networking modes:
-  - `"vnet"` – delegated subnet + private DNS zone
-  - `"privatelink"` – private endpoint + private DNS zone
+  `"vnet"` – delegated subnet + private DNS zone
+  `"privatelink"` – private endpoint + private DNS zone
 - Optional HA with zone-redundant pairs.
 - Supports:
-  - Password auth
-  - Azure AD auth (with optional AAD admin)
+  Password auth
+  Azure AD auth (with optional AAD admin)
 
-**How it connects**
+*How it connects*
 
 - Gets resource group, subnets, DNS zones from `modules/networking`.
 - When `"privatelink"` mode is used:
-  - Uses `private_endpoint_subnet_id` and `postgres_privatelink_dns_zone_id` from the networking module.
+  Uses `private_endpoint_subnet_id` and `postgres_privatelink_dns_zone_id` from the networking module.
 
 Example (`environment/dev/postgres.tf`):
 
@@ -238,14 +231,12 @@ The `scripts/createdb.sh` script is a helper that uses `kubectl` and a temporary
 
 #### `modules/database/redis` (Azure Cache for Redis)
 
-**What it does**
-
-- Creates an **Azure Cache for Redis** (typically Premium).
+- Creates an *Azure Cache for Redis* (typically Premium).
 - Disables public network access.
-- Adds a **private endpoint** in the `private-endpoints` subnet.
+- Adds a *private endpoint* in the `private-endpoints` subnet.
 - Registers it in the `privatelink.redis.cache.windows.net` private DNS zone.
 
-**How it connects**
+*How it connects*
 
 - Uses RG name, location from networking module.
 - Uses `module.networking.subnet_ids_primary["private-endpoints"]`.
@@ -255,12 +246,10 @@ The `scripts/createdb.sh` script is a helper that uses `kubectl` and a temporary
 
 ####  `modules/database/cosmos` (Cosmos DB – Mongo API)
 
-**What it does**
-
 - Creates a **Cosmos DB** Mongo API account.
 - Supports:
-  - Single or multi-region (`geo_locations`)
-  - Optional serverless mode
+  Single or multi-region (`geo_locations`)
+  Optional serverless mode
 - Disables public access.
 - Adds a private endpoint + DNS registration (`privatelink.mongo.cosmos.azure.com`).
 
@@ -274,15 +263,13 @@ The `scripts/createdb.sh` script is a helper that uses `kubectl` and a temporary
 
 #### `modules/storage` (Blob Storage + CDN)
 
-**What it does**
-
 - Creates an Azure **Storage Account** (for videos/content).
 - Creates a Blob **container** (default: `videos`).
 - Optional:
-  - Private endpoint to `privatelink.blob.core.windows.net`
-  - CDN Profile + CDN Endpoint with the blob endpoint as origin.
+  Private endpoint to `privatelink.blob.core.windows.net`
+  CDN Profile + CDN Endpoint with the blob endpoint as origin.
 
-**How it connects**
+*How it connects*
 
 - Uses resource group and location from networking.
 - Uses `private-endpoints` subnet + `privatelink.blob.core.windows.net` DNS zone when private endpoints are enabled.
@@ -309,80 +296,57 @@ The environment folder implements modules together and adds **cluster-level comp
 
 `provider.tf`
 
-- Configures:
+Configures:
   - `azurerm` + `azuread` providers (for Azure resources).
   - `data "azurerm_kubernetes_cluster" "aks_primary"` to fetch kubeconfig for the AKS cluster created by `module.aks_primary`.
   - `kubernetes` and `helm` providers using that kubeconfig.
 
-- This setup allows Terraform to:
-  - Install **Helm charts** into the cluster.
-  - Apply **Kubernetes manifests** using `kubernetes_manifest`.
-
 `acr.tf`
 
-- Uses a remote ACR module:
-  - `module "container_regisry"` to create / configure ACR.
+- Uses a published ACR module (by me): `module "container_regisry"` to create / configure ACR.
 - Grants **AcrPull** role assignment to the AKS **kubelet identity** from `module.aks_primary`.
 
 This is what allows AKS nodes to pull images from ACR.
 
 `keyVault.tf`
 
-- Creates:
+Creates
   - Azure AD app + service principal for External Secrets Operator.
   - App registration for OIDC federation (`teleios-aks-federation`).
   - Federated identity credential tied to:
     - AKS OIDC issuer (`module.aks_primary.oidc_issuer_url`)
     - Service account subject: `system:serviceaccount:external-secrets-dev:external-secrets-sa`
 
-- Creates a **Key Vault** and assigns **Key Vault Secrets User** role to the ESO service principal.
-
-This allows ESO in the cluster to access Key Vault secrets via workload identity (no static SP credentials).
+In summary, this setup creates an Azure Key Vault and assigns the Key Vault Secrets User role to the ESO service principal. As a result, External Secrets Operator (ESO) can authenticate to Key Vault using Azure Workload Identity and retrieve secrets securely, without relying on stored service principal credentials.
 
 
 
 #### Helm-based Addons
 `ingress-controller.tf`
 - Installs ingress-nginx in `ingress-nginx` namespace.
-- Values:
-  - Health probe path.
-  - `externalTrafficPolicy: Local`.
 
 `cert-manager.tf`
-
 - Installs cert-manager in `cert-manager` namespace.
-- CRDs enabled via `helmValues/cert-manager.yaml`.
 
 `argocd.tf`
-
 - Installs Argo CD in `argocd` namespace.
-- Values set things like:
-  - Admin user, exec, reconciliation timeout.
-  - Ingress with:
-    - `ingressClassName: nginx`
-    - `cert-manager.io/cluster-issuer: letsencrypt-prod`
-    - Domain `argocd.meshachdevops.online` (customizable).
-  - HA (multiple replicas for server, controller, repoServer, Redis disabled).
 
 `apply-kubernetes-resources.tf`
-
 Applies two important Kubernetes resources:
 
-1. ClusterIssuer (`kubernetes_resources/cluster-issuer.yaml`)
+ClusterIssuer (`kubernetes_resources/cluster-issuer.yaml`)
    - Issuer name: `letsencrypt-prod`.
    - ACME configuration for Let’s Encrypt production.
 
-2. Argo CD App-of-Apps (`kubernetes_resources/appofapps.yaml`)
+Argo CD App-of-Apps (`kubernetes_resources/appofapps.yaml`)
    - Argo CD Application named `base-application`.
    - Points to Git repo: `https://github.com/meshachdamilare/eduhub-apps-gitops.git`.
    - Path: `applicationset` (recursive).
    - Automated sync + prune + self-heal.
 
-This turns the cluster into a **GitOps platform** where Terraform only bootstraps Argo CD + base application, and Argo CD takes over application lifecycle.
-
 ---
 
-#### How the Pieces Connect (Flow)
+#### How Everything Connects on the high level
 
 In order:
 
@@ -409,9 +373,9 @@ In order:
 
 ---
 
-## Setup & Usage (Dev Environment)
+## Example: Setup & Usage (Dev Environment)
 
-**Prerequisites**
+Prerequisites
 
 - Terraform **>= 1.6.0**
 - Azure CLI (`az`)
@@ -419,14 +383,14 @@ In order:
 - Access to the ACR Terraform module (`app.terraform.io/Teleios/terraform-azure-acr/azure`)
 - An Azure subscription
 
-**Configure Dev Variables**
+Configure Dev Variables
 
 Check `environment/dev/dev.tfvars` and adjust:
 
 - `env` – e.g. `"dev"`
 - `resource_group_name` – base name (e.g. `"final-teleios"`)
 - `location_primary` – Azure region (e.g. `"north europe"`)
-- `enable_secondary` – `false` for single-region dev
+- `enable_secondary` – `false` for single-region dev for testing
 - `enable_nat_gateway` – `false` for now, or `true` if you want NAT
 - ACR values (`create_acr`, `acr_sku`, `acr_name`)
 - `postgres_admin_password` – use a strong secret if you enable Postgres
@@ -462,16 +426,15 @@ Access Argo CD
 - Visit `https://argocd.<your-domain>`.
 - Use the admin credentials defined through Argo CD values (or default secret depending on config).
 
----
 
 #### Adapting to Staging & Prod
 
 - Copy `environment/dev` to `environment/stagging` and `environment/prod`.
 - Change:
-  - `env` in `*.tfvars` (`"stag"`, `"prod"`, etc.)
-  - Regions and `resource_group_name`
-  - Node sizes/counts
-  - `enable_secondary = true` for multi-region/high availability
-- Run `terraform init/plan/apply` from each environment folder separately.
+`env` in `*.tfvars` (`"stag"`, `"prod"`, etc.)
+Regions and `resource_group_name`
+Node sizes/counts
+`enable_secondary = true` for multi-region/high availability
+Run `terraform init/plan/apply` from each environment folder separately.
 
 Each environment is isolated in its own directory and state by default.
