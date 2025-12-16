@@ -217,7 +217,7 @@ Outputs that are used elsewhere:
 - When `"privatelink"` mode is used:
   - Uses `private_endpoint_subnet_id` and `postgres_privatelink_dns_zone_id` from the networking module.
 
-Example (currently commented in `environment/dev/postgres.tf`):
+Example (`environment/dev/postgres.tf`):
 
 ```hcl
 module "postgres" {
