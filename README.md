@@ -1,4 +1,4 @@
-# Eduhub Platform – Terraform
+# Eduhub Platform (Terraform)
 
 This repository contains Terraform code to provision a secure environment for eduhub-platform on Azure.
 
