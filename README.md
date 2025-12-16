@@ -149,7 +149,7 @@ module "networking" {
   - `module.networking.private_dns_zone_ids["privatelink.postgres.database.azure.com"]`
   - etc.
 
-It is the **foundation** that everything else plugs into.
+It is the **base** that everything else plugs into.
 
 ---
 
