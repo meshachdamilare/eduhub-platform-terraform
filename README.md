@@ -151,7 +151,7 @@ It is the **base** that everything else plugs into.
 
 #### `modules/kubenertes` (AKS)
 
-Creates an **AKS cluster** using networking config from the networking module implementation output.
+Creates an **AKS cluster** using networking config from the networking module.
 
 Key features:
 - AKS with `system-assigned identity`
