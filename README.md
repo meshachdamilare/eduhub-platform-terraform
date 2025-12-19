@@ -116,7 +116,7 @@ For PaaS private endpoints:
 - `environment/dev/main.tf` uses this module.
   Implementation sample..
 
-```hcl
+```
 module "networking" {
   source             = "../../modules/networking"
   env                = local.env
@@ -167,7 +167,7 @@ Key features:
 
 In `environment/dev/main.tf`:
 
-```hcl
+```
 module "aks_primary" {
   source = "../../modules/kubenertes"
 
@@ -212,7 +212,7 @@ Same pattern to create aks_secondary .
 
 Example (`environment/dev/postgres.tf`):
 
-```hcl
+```
 module "postgres" {
   source                           = "../../modules/database/posgres"
   resource_group_name              = module.networking.resource_group_name_primary
